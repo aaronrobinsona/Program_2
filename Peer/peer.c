@@ -128,11 +128,64 @@ int main( int argc, char *argv[] ) {
 		  printf("PUBLISH request sent (%u files)\n", count);
 		}
             }
-          else if(strcmp(buf, "SEARCH") == 0)
+	  // SEARCH implementation start 
+          else if (strcmp(buf, "SEARCH") == 0)
             {
               // ask user for filename, build SEARCH request, send
               //then recv the 10-byte response and print result
+	      printf("Enter a file name: ");
+	      if (!fgets(buf, sizeof(buf), stdin))
+		{
+		  continue;
+		}
+	      trim_newline(buf);
+	      size_t name_len = strlen(buf) + 1;
+	      if (name_len > 100)
+		{
+		  fprintf(stderr, "filename too long\n");
+		  continue;
+		}
+	      uint8_t msg[1 + 101];
+	      msg[0] = 2;
+	      memcpy(msg + 1, buf, name_len);
+
+	      if (send(s, msg, 1 + name_len, 0) < 0)
+		{
+		  perror("SEARCH send failed");
+		  continue;
+		}
+	      uint8_t resp[10];
+	      ssize_t r = recv(s, resp, sizeof(resp), 0);
+	      if (r != sizeof(resp))
+		{
+		  perror("SEARCH recv failed");
+		  continue;
+		}
+	      uint32_t pid_net, ip_net;
+	      uint16_t port_net;
+	      memcpy(&pid_net, resp, 4);
+	      memcpy(&ip_net, resp + 4, 4);
+	      memcpy(&port_net, resp + 8, 2);
+	      uint32_t pid_host = ntohl(pid_net);
+	      uint32_t ip_host = ntohl(ip_net);
+	      uint16_t port_host = ntohs(port_net);
+	      if (pid_host == 0 && ip_host == 0 && port_host == 0)
+		{
+		  printf("File not indexed by registry\n");
+		}
+	      else
+		{
+		  struct in_addr addr;
+		  addr.s_addr = htonl(ip_host);
+		  char ipstr[INET_ADDRSTRLEN];
+		  if (!inet_ntop(AF_INET, &addr, ipstr, sizeof(ipstr)))
+		    {
+		      strcpy(ipstr, "<?>");
+		    }
+		  printf("File found at\nPeer %u\n%s:%u\n", pid_host, ipstr, port_host);
+		}
             }
+	  // EXIT implementation start
           else if (strcmp(buf, "EXIT") == 0)
             {
               break;
