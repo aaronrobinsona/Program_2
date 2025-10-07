@@ -12,7 +12,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <dirent.h>
 #define SERVER_PORT "5432" // This must match on client and server
 #define BUF_SIZE 256 // This can be smaller. What size?
 
@@ -66,10 +66,67 @@ int main( int argc, char *argv[] ) {
           if(strcmp(buf, "JOIN") == 0)
             {
               // build JOIN message and send
+	      uint8_t msg[5];    
+	      msg[0] = 0;                  
+
+	      uint32_t peer_id_net = htonl((uint32_t)atoi(peer_id));
+	      memcpy(msg + 1, &peer_id_net, 4);
+
+	      ssize_t sent = send(s, msg, sizeof(msg), 0);
+	      if (sent != sizeof(msg))
+		{
+		  perror("JOIN send failed");
+		}
+	      else
+		{
+		  printf("JOIN request sent.\n");
+		}
             }
+	  // JOIN Implementation Done
+	  // PUBLISH
           else if(strcmp(buf, "PUBLISH") == 0)
             {
               // build PUBLISH message (scan ./SharedFiles) and send
+	      DIR *dir = opendir("SharedFiles");
+	      if (!dir)
+		{
+		  perror("opendir");
+		  continue;
+		}
+
+	      uint8_t msg[1200];
+	      msg[0] = 1;
+	      uint32_t count = 0;
+	      size_t pos = 5;
+
+	      struct dirent *entry;
+	      while((entry = readdir(dir)) != NULL)
+		{
+		  if(entry->d_type == DT_REG)
+		    {
+		      size_t len = strlen(entry->d_name) + 1;
+		      if (pos + len > sizeof(msg))
+			{
+			  break;
+			}
+		      memcpy(msg + pos, entry->d_name, len);
+		      pos += len;
+		      count++;
+		    }
+		}
+	      closedir(dir);
+	      uint32_t count_net = htonl(count);
+	      memcpy(msg +1, &count_net, 4);
+
+	      ssize_t sent = send(s, msg, pos, 0);
+	      if (sent != (ssize_t)pos)
+		{
+		  perror("PUBLISH send failed");
+		}
+	      else
+		{
+		  printf("PUBLISH request sent (%u files)\n", count);
+		}
             }
           else if(strcmp(buf, "SEARCH") == 0)
             {
