@@ -1,35 +1,34 @@
 //peer.c
 //Program_2 Group 17
-//Aaron Robinson almazan
+//Aaron Robinson Almazan
 //James C Oppy
 /* This code is an updated version of the sample code from "Computer Networks: A Systems
  * Approach," 5th Edition by Larry L. Peterson and Bruce S. Davis. Some code comes from
  * man pages, mostly getaddrinfo(3). */
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
-#define SERVER_PORT "5432" // This must match on client and server
-#define BUF_SIZE 256 // This can be smaller. What size?
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#define BUF_SIZE 256
 
-/*
- * Lookup a host IP address and connect to it using service. Arguments match the first two
- * arguments to getaddrinfo(3).
- *
- * Returns a connected socket descriptor or -1 on error. Caller is responsible for closing
- * the returned socket.
- */
 static void trim_newline(char *s) { //Need this because user hits enter after typing for ex. "JOIN" adds "\n" to string = "JOIN\n"
     size_t n = strlen(s);
     if (n && s[n-1] == '\n') {
         s[n-1] = '\0';
     }
 }
-
+/*                                                                                                                                                                                                                  
+ * Lookup a host IP address and connect to it using service. Arguments match the first two                                                                                                                          
+ * arguments to getaddrinfo(3).                                                                                                                                                                                     
+ *                                                                                                                                                                                                                  
+ * Returns a connected socket descriptor or -1 on error. Caller is responsible for closing                                                                                                                          
+ * the returned socket.                                                                                                                                                                                            
+ */
 int connect_to_registry( const char *host, const char *service );
 
 int main( int argc, char *argv[] ) {
@@ -38,21 +37,18 @@ int main( int argc, char *argv[] ) {
 	char *peer_id;
         char buf[BUF_SIZE];
         int s;
-        int len;
-        uint32_t a, b;
-        uint32_t answer;
-
+  
         if ( argc == 4 ) {
                 registry_host = argv[1];
 		registry_port = argv[2];
 		peer_id = argv[3];
         }
         else {
-                fprintf( stderr, "usage: %s host\n", argv[0] );
+                fprintf(stderr, "usage: %s <registry_host> <registry_port> <peer_id>\n", argv[0]);
                 exit( 1 );
         }
 
-        /* Lookup IP and connect to server */
+        // Lookup IP and connect to server 
         if ( ( s = connect_to_registry( registry_host, registry_port) ) < 0 ) {
                 exit( 1 );
         }
@@ -82,7 +78,6 @@ int main( int argc, char *argv[] ) {
 		  printf("JOIN request sent.\n");
 		}
             }
-	  // JOIN Implementation Done
 	  // PUBLISH
           else if(strcmp(buf, "PUBLISH") == 0)
             {
@@ -128,11 +123,11 @@ int main( int argc, char *argv[] ) {
 		  printf("PUBLISH request sent (%u files)\n", count);
 		}
             }
-	  // SEARCH implementation start 
+	  // SEARCH Implementation Start 
           else if (strcmp(buf, "SEARCH") == 0)
             {
               // ask user for filename, build SEARCH request, send
-              //then recv the 10-byte response and print result
+              // then recv the 10-byte response and print result
 	      printf("Enter a file name: ");
 	      if (!fgets(buf, sizeof(buf), stdin))
 		{
@@ -184,8 +179,8 @@ int main( int argc, char *argv[] ) {
 		    }
 		  printf("File found at\nPeer %u\n%s:%u\n", pid_host, ipstr, port_host);
 		}
-            }
-	  // EXIT implementation start
+            } 
+	  // EXIT Implementation Start
           else if (strcmp(buf, "EXIT") == 0)
             {
               break;
